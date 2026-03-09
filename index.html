@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para Ste</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Montserrat:wght@200;300;400&family=Great+Vibes&display=swap');
+
+        * { box-sizing: border-box; user-select: none; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: #010103; 
+            background-image: url('fondo.png'); 
+            background-size: cover;             
+            background-position: center center; 
+            background-attachment: fixed;       
+            overflow: hidden; 
+            font-family: 'Montserrat', sans-serif; 
+            color: white; 
+        }
+        
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        #intro-screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; justify-content: center; align-items: center; 
+            z-index: 10; 
+            background: #000000; 
+            transition: opacity 2.5s cubic-bezier(0.2, 0.8, 0.2, 1); 
+            cursor: pointer; 
+        }
+        
+        .pulse-text { font-family: 'Cinzel Decorative', serif; font-size: 1.4rem; letter-spacing: 8px; color: #d8f3ff; animation: breathe 2.5s infinite alternate; text-transform: uppercase; text-align: center; }
+        @keyframes breathe { 0% { opacity: 0.4; transform: scale(0.95); text-shadow: 0 0 0 rgba(0, 198, 255, 0); } 100% { opacity: 1; transform: scale(1.05); text-shadow: 0 0 30px rgba(0, 198, 255, 0.9); } }
+        
+        #message-container { 
+            position: absolute; bottom: 8%; width: 100%; text-align: center; 
+            z-index: 5; opacity: 0; 
+            transform: translateY(60px); 
+            transition: all 4s cubic-bezier(0.1, 0.9, 0.2, 1) 1.5s; 
+            pointer-events: none; /* Permite que los clics traspasen el contenedor hacia el canvas 3D */
+
+            /* ⬇️ 1. LLAVE MAESTRA PARA EL TEXTO "STE" Y "EL CENTRO DE MI UNIVERSO" ⬇️ */
+            margin-left: -80px; 
+        }
+        h1 { font-family: 'Cinzel Decorative', serif; font-size: 7rem; margin: 0 0 10px 0; color: #ffffff; text-shadow: 0 0 50px rgba(0, 198, 255, 0.7), 0 0 15px rgba(255, 255, 255, 0.9); letter-spacing: 8px; }
+        p { font-size: 1.6rem; letter-spacing: 6px; font-weight: 300; color: #b3e0ff; margin: 0 0 15px 0; text-transform: uppercase; text-shadow: 0 0 20px rgba(0, 114, 255, 0.5); }
+
+        /* --- ESTILOS DEL NUEVO BOTÓN --- */
+        #ver-mas-btn {
+            pointer-events: auto; /* Reactiva los clics solo para este botón */
+            padding: 10px 30px;
+            background: rgba(0, 198, 255, 0.1);
+            border: 1px solid #00c6ff;
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 198, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        #ver-mas-btn:hover {
+            background: rgba(0, 198, 255, 0.4);
+            box-shadow: 0 0 25px rgba(0, 198, 255, 0.8);
+            transform: scale(1.05);
+        }
+
+        #final-message {
+            position: absolute;
+            top: 46%;
+            
+            /* ⬇️ 2. LLAVE MAESTRA PARA EL "TE QUIERO" FINAL ⬇️ */
+            left: 45%; 
+            
+            transform: translate(-50%, -50%) scale(0.5);
+            font-family: 'Great Vibes', cursive;
+            font-size: 5rem; 
+            color: transparent;
+            background-image: linear-gradient(135deg, #ffffff, #80dfff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            filter: drop-shadow(0 0 15px rgba(0, 230, 255, 0.8)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.6));
+            letter-spacing: 3px;
+            opacity: 0; 
+            visibility: hidden;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 2s ease, transform 2s ease, visibility 2s;
+        }
+
+        #final-message.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+            animation: finalBreathe 3s infinite alternate 3s; 
+        }
+
+        #final-message::before, #final-message::after {
+            content: '✦'; 
+            position: absolute;
+            color: #ffffff;
+            opacity: 0.8;
+            text-shadow: 0 0 15px rgba(0, 230, 255, 0.9);
+            font-size: 2.5rem;
+        }
+        #final-message::before { left: -50px; top: 50%; transform: translateY(-50%); }
+        #final-message::after { right: -50px; top: 50%; transform: translateY(-50%); }
+
+        @keyframes finalBreathe {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            100% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 25px rgba(0, 230, 255, 1)); }
+        }
+
+        /* --- ESTILOS DE LA MINIVENTANA (MODAL) --- */
+        #password-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(1, 1, 3, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: none; /* Oculto por defecto */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: rgba(0, 10, 30, 0.9);
+            border: 1px solid #00c6ff;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 198, 255, 0.4);
+            position: relative;
+            max-width: 90%;
+            width: 450px;
+        }
+        .modal-content h2 {
+            font-family: 'Cinzel Decorative', serif;
+            color: #ffffff;
+            margin-top: 0;
+            font-size: 2rem;
+            text-shadow: 0 0 15px rgba(0, 198, 255, 0.8);
+        }
+        .modal-content p {
+            font-size: 1rem;
+            color: #b3e0ff;
+            margin-bottom: 20px;
+        }
+        #password-input {
+            width: 80%;
+            padding: 12px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #00c6ff;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            outline: none;
+            letter-spacing: 2px;
+        }
+        #password-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 198, 255, 0.6);
+        }
+        #submit-password {
+            padding: 12px 35px;
+            background: #00c6ff;
+            border: none;
+            color: #010103;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #submit-password:hover {
+            background: #ffffff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            transform: scale(1.05);
+        }
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 2rem;
+            color: #00c6ff;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .close-btn:hover {
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <audio id="bg-music" loop><source src="cancion.mp3" type="audio/mpeg"></audio>
+    <div id="intro-screen"><div class="pulse-text">Tap tap a la pantalla</div></div>
+    
+    <div id="message-container">
+        <h1>Bobita</h1>
+        <p>¿Te gustó?</p>
+        <button id="ver-mas-btn">Ver más</button>
+    </div>
+    
+    <div id="final-message">Te quiero</div>
+
+    <div id="password-modal">
+        <div class="modal-content" id="modal-box">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h2>Dudo que le atines</h2>
+            <p>No estoy seguro si ese día fue bueno o malo</p>
+            <input type="text" id="password-input" placeholder="Ej: 01/12/2024" autocomplete="off">
+            <br>
+            <button id="submit-password">Entrar</button>
+            <p id="error-message" style="color: #ff4d4d; display: none; font-size: 0.9rem; margin-top: 15px; text-shadow: none;">
+                Fecha incorrecta. Inténtalo de nuevo.
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/environments/RoomEnvironment.js';
+        import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/GLTFLoader.js';
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x010103, 0.001); 
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 100; 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMappingExposure = 1.5; 
+        container.appendChild(renderer.domElement);
+
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+        const mainGroup = new THREE.Group(); 
+        scene.add(mainGroup);
+
+        let clickCount = 0;
+        const maxClicks = 5;
+        let exploded = false;
+        let isReconstructing = false;
+        let isGrowing = false;
+        const fragments = [];
+        const fragmentGroup = new THREE.Group(); 
+        scene.add(fragmentGroup);
+
+        const HEART_BASE_SCALE = 25; 
+        const HEART_Y_OFFSET = 12; 
+        const SCENE_OFFSET_X = -7; 
+
+        mainGroup.position.x = SCENE_OFFSET_X;
+        fragmentGroup.position.x = SCENE_OFFSET_X;
+
+        const loader = new GLTFLoader();
+
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x0044ff, emissive: 0x001144, metalness: 0.3, roughness: 0.05,       
+            transmission: 0.0, ior: 2.2, thickness: 5.0, clearcoat: 1.0, clearcoatRoughness: 0.05
+        });
+
+        let loadedHeart = null;
+        loader.load('corazon.glb', function (gltf) {
+            loadedHeart = gltf.scene;
+            loadedHeart.traverse((child) => { if (child.isMesh) child.material = glassMaterial; });
+            loadedHeart.scale.set(HEART_BASE_SCALE, HEART_BASE_SCALE, HEART_BASE_SCALE);
+            
+            const box = new THREE.Box3().setFromObject(loadedHeart);
+            const center = box.getCenter(new THREE.Vector3());
+            loadedHeart.position.sub(center); 
+            loadedHeart.position.y += HEART_Y_OFFSET; 
+
+            mainGroup.add(loadedHeart);
+        }, undefined, function (error) { console.error('Error al cargar el corazón:', error); });
+
+        let loadedBunny = null;
+        const bunnyMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x7B3F00, emissive: 0x331100, emissiveIntensity: 0.2, metalness: 0.0,          
+            roughness: 0.4, transmission: 0.0, clearcoat: 0.3, clearcoatRoughness: 0.1  
+        });
+
+        loader.load('conejo.glb', function (gltf) {
+            const bunnyMesh = gltf.scene;
+            bunnyMesh.traverse((child) => { if (child.isMesh) child.material = bunnyMaterial; });
+            bunnyMesh.scale.set(1.5, 1.5, 1.5); 
+            const box = new THREE.Box3().setFromObject(bunnyMesh);
+            const center = box.getCenter(new THREE.Vector3());
+            bunnyMesh.position.sub(center); 
+            loadedBunny = new THREE.Group();
+            loadedBunny.add(bunnyMesh);
+            scene.add(loadedBunny);
+        }, undefined, function (error) { console.error('Error al cargar el conejo:', error); });
+
+        let butterfly1 = null;
+        let butterfly2 = null;
+        
+        const butterflyMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x00ffff, emissive: 0x0055aa, emissiveIntensity: 0.8, metalness: 0.2, 
+            roughness: 0.1, transmission: 0.8, ior: 1.8, thickness: 1.0, 
+            clearcoat: 1.0, side: THREE.DoubleSide
+        });
+
+        loader.load('mariposa.glb', function (gltf) {
+            const bMesh = gltf.scene;
+            bMesh.traverse((child) => { if (child.isMesh) child.material = butterflyMaterial; });
+            bMesh.scale.set(3, 3, 3); 
+            
+            const box = new THREE.Box3().setFromObject(bMesh);
+            const center = box.getCenter(new THREE.Vector3());
+            bMesh.position.sub(center); 
+
+            butterfly1 = new THREE.Group();
+            butterfly1.add(bMesh.clone());
+            butterfly2 = new THREE.Group();
+            butterfly2.add(bMesh.clone());
+            
+            butterfly1.visible = false;
+            butterfly2.visible = false;
+            
+            scene.add(butterfly1);
+            scene.add(butterfly2);
+        }, undefined, function (error) { console.error('Error al cargar la mariposa:', error); });
+
+        const shootingStars = [];
+        const ssGeometry = new THREE.CylinderGeometry(0.05, 0.4, 20, 8); 
+        ssGeometry.rotateX(Math.PI / 2); 
+        const ssMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+
+        for(let i = 0; i < 4; i++) {
+            const star = new THREE.Mesh(ssGeometry, ssMaterial);
+            resetShootingStar(star);
+            scene.add(star);
+            shootingStars.push(star);
+        }
+
+        function resetShootingStar(star) {
+            star.position.set(SCENE_OFFSET_X + 100 + Math.random() * 200, 100 + Math.random() * 100, -50 - Math.random() * 150);
+            star.userData.velocity = new THREE.Vector3(-2 - Math.random() * 3, -1.5 - Math.random() * 2, 1 + Math.random() * 2);
+            star.lookAt(star.position.clone().add(star.userData.velocity));
+            star.userData.active = false;
+            setTimeout(() => { star.userData.active = true; }, Math.random() * 5000);
+        }
+
+        scene.add(new THREE.AmbientLight(0x001133, 2.0)); 
+        const light1 = new THREE.PointLight(0x00c6ff, 15, 200); 
+        const light2 = new THREE.PointLight(0xffffff, 8, 200); 
+        mainGroup.add(light1); mainGroup.add(light2);
+
+        let isActive = false;
+        let mouseX = 0, mouseY = 0;
+        let targetRotationX = 0, targetRotationY = 0;
+        const clock = new THREE.Clock();
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX - window.innerWidth / 2) * 0.0015;
+            mouseY = (e.clientY - window.innerHeight / 2) * 0.0015;
+        });
+
+        document.getElementById('intro-screen').addEventListener('click', () => {
+            if(!isActive) {
+                isActive = true;
+                const intro = document.getElementById('intro-screen');
+                intro.style.opacity = '0';
+                setTimeout(() => intro.style.display = 'none', 2500);
+                
+                document.getElementById('message-container').style.opacity = '1';
+                document.getElementById('message-container').style.transform = 'translateY(0)'; 
+                
+                const audio = document.getElementById('bg-music');
+                audio.volume = 0.15; 
+                audio.play().catch(e => console.log("Audio no cargado"));
+                
+                if(butterfly1) butterfly1.visible = true;
+                if(butterfly2) butterfly2.visible = true;
+            }
+        });
+
+        container.addEventListener('click', () => {
+            if (exploded || isReconstructing || isGrowing || !isActive || !loadedHeart) return;
+            clickCount++;
+            if (clickCount >= maxClicks) {
+                explodeHeart();
+            } else {
+                const feedbackAnim = setInterval(() => {
+                    let t = 0; t += 0.1;
+                    const scaleFeedback = 1 + 0.1 * Math.exp(-t*3) * Math.sin(t * 15);
+                    if(loadedHeart) loadedHeart.scale.set(HEART_BASE_SCALE*scaleFeedback, HEART_BASE_SCALE*scaleFeedback, HEART_BASE_SCALE*scaleFeedback);
+                    if(t > 3) {
+                        clearInterval(feedbackAnim);
+                        if(loadedHeart) loadedHeart.scale.set(HEART_BASE_SCALE, HEART_BASE_SCALE, HEART_BASE_SCALE); 
+                    }
+                }, 16);
+            }
+        });
+
+        function explodeHeart() {
+            exploded = true;
+            
+            const heartPos = loadedHeart.position.clone();
+            mainGroup.remove(loadedHeart); 
+
+            const fragmentCount = 150; 
+            const fragmentGeometry = new THREE.OctahedronGeometry(1.2, 0); 
+            const fragmentMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x00c6ff, metalness: 0.3, roughness: 0.1, transmission: 0.0, 
+                clearcoat: 1.0, blending: THREE.AdditiveBlending 
+            });
+
+            for (let i = 0; i < fragmentCount; i++) {
+                const fragment = new THREE.Mesh(fragmentGeometry, fragmentMaterial.clone());
+                fragment.userData.velocity = new THREE.Vector3((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+                fragment.userData.rotationVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3);
+                fragment.userData.floatOffset = Math.random() * Math.PI * 2;
+                fragment.position.copy(heartPos); 
+                fragments.push(fragment);
+                fragmentGroup.add(fragment);
+            }
+
+            const flashLight = new THREE.PointLight(0xffffff, 80, 500); 
+            flashLight.position.set(SCENE_OFFSET_X, HEART_Y_OFFSET, 0); 
+            scene.add(flashLight);
+            
+            let flashTime = 0;
+            const flashAnim = setInterval(() => {
+                flashTime += 0.1;
+                flashLight.intensity = 80 * Math.exp(-flashTime * 1.5);
+                if(flashTime > 5) {
+                    clearInterval(flashAnim);
+                    scene.remove(flashLight);
+                    flashLight.dispose();
+                }
+            }, 16);
+
+            setTimeout(() => {
+                const finalMessage = document.getElementById('final-message');
+                finalMessage.classList.add('visible');
+            }, 500); 
+
+            const audio = document.getElementById('bg-music');
+            audio.volume = 0.05; 
+            setTimeout(() => { startReconstruction(); }, 5000);
+        }
+
+        function startReconstruction() {
+            const finalMessage = document.getElementById('final-message');
+            finalMessage.classList.remove('visible');
+            
+            const audio = document.getElementById('bg-music');
+            audio.volume = 0.15; 
+            
+            isReconstructing = true;
+
+            setTimeout(() => {
+                isReconstructing = false;
+                fragments.forEach(frag => {
+                    fragmentGroup.remove(frag);
+                    frag.geometry.dispose();
+                    frag.material.dispose();
+                });
+                fragments.length = 0; 
+
+                const birthFlash = new THREE.PointLight(0x00c6ff, 50, 400); 
+                birthFlash.position.set(SCENE_OFFSET_X, HEART_Y_OFFSET, 0); 
+                scene.add(birthFlash);
+                setTimeout(() => { scene.remove(birthFlash); birthFlash.dispose(); }, 500);
+
+                loadedHeart.scale.set(0, 0, 0);
+                mainGroup.add(loadedHeart);
+                isGrowing = true;
+            }, 2000);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            targetRotationY += (mouseX - targetRotationY) * 0.05;
+            targetRotationX += (mouseY - targetRotationX) * 0.05;
+            mainGroup.rotation.y = targetRotationY * 1.5;
+            mainGroup.rotation.x = targetRotationX * 1.5;
+
+            if (isActive) {
+                shootingStars.forEach(star => {
+                    if (star.userData.active) {
+                        star.position.add(star.userData.velocity); 
+                        if (star.position.y < -150 || star.position.x < -200) {
+                            resetShootingStar(star);
+                        }
+                    }
+                });
+            }
+
+            if (butterfly1 && butterfly2 && isActive) {
+                const bTime = time * 1.5; 
+                const radius = 35; 
+                
+                butterfly1.position.x = SCENE_OFFSET_X + Math.cos(bTime) * radius;
+                butterfly1.position.z = Math.sin(bTime) * radius;
+                butterfly1.position.y = HEART_Y_OFFSET + Math.sin(bTime * 4) * 5; 
+                butterfly1.rotation.y = -bTime + Math.PI; 
+                
+                butterfly2.position.x = SCENE_OFFSET_X + Math.cos(bTime + Math.PI) * (radius - 8);
+                butterfly2.position.z = Math.sin(bTime + Math.PI) * (radius - 8);
+                butterfly2.position.y = HEART_Y_OFFSET + Math.cos(bTime * 3) * 8; 
+                butterfly2.rotation.y = -(bTime + Math.PI) + Math.PI;
+            }
+
+            if (loadedBunny && isActive) {
+                const speed = 18;       
+                const jumpFreq = 7;     
+                const jumpHeight = 6;   
+                const range = 180;      
+                const baseY = -35;      
+
+                let currentX = (time * speed) % range - (range / 2);
+                loadedBunny.position.x = SCENE_OFFSET_X + currentX;
+                loadedBunny.position.y = baseY + Math.abs(Math.sin(time * jumpFreq)) * jumpHeight;
+                loadedBunny.position.z = 25;
+                loadedBunny.rotation.y = 0; 
+                loadedBunny.rotation.z = Math.cos(time * jumpFreq) * 0.2;
+            }
+
+            if(isActive && loadedHeart && !exploded && !isGrowing) {
+                const beat = 1 + Math.pow(Math.sin(time * 3), 4) * 0.04; 
+                mainGroup.scale.set(beat, beat, beat);
+            }
+
+            if (isGrowing) {
+                loadedHeart.scale.lerp(new THREE.Vector3(HEART_BASE_SCALE, HEART_BASE_SCALE, HEART_BASE_SCALE), 0.1);
+                if (loadedHeart.scale.x > (HEART_BASE_SCALE - 0.2)) {
+                    loadedHeart.scale.set(HEART_BASE_SCALE, HEART_BASE_SCALE, HEART_BASE_SCALE);
+                    isGrowing = false;
+                    exploded = false;
+                    clickCount = 0; 
+                }
+            }
+
+            if (exploded) {
+                fragmentGroup.rotation.y += 0.002;
+                fragmentGroup.rotation.x += 0.001;
+                const centerPos = loadedHeart.position;
+
+                for (let i = 0; i < fragments.length; i++) {
+                    const frag = fragments[i];
+                    if (!isReconstructing) {
+                        frag.userData.velocity.multiplyScalar(0.96); 
+                        frag.position.add(frag.userData.velocity);
+                        frag.position.y += Math.sin(time * 2 + frag.userData.floatOffset) * 0.03;
+                        frag.position.x += Math.cos(time * 1.5 + frag.userData.floatOffset) * 0.02;
+                    } else {
+                        frag.position.lerp(centerPos, 0.08); 
+                    }
+                    frag.rotation.x += frag.userData.rotationVelocity.x;
+                    frag.rotation.y += frag.userData.rotationVelocity.y;
+                    frag.rotation.z += frag.userData.rotationVelocity.z;
+                }
+            }
+
+            light1.position.set(Math.sin(time * 1.5) * 40, HEART_Y_OFFSET + Math.cos(time * 1.2) * 40, Math.sin(time * 0.8) * 40);
+            light2.position.set(Math.cos(time * 1.1) * 40, HEART_Y_OFFSET + Math.sin(time * 1.4) * 40, Math.cos(time * 0.9) * 40);
+
+            camera.position.x += (mouseX * 15 - camera.position.x) * 0.05;
+            camera.position.y += (-mouseY * 15 - camera.position.y) * 0.05;
+            camera.lookAt(new THREE.Vector3(0, HEART_Y_OFFSET, 0));
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- LÓGICA DEL BOTÓN Y LA CONTRASEÑA ---
+        const verMasBtn = document.getElementById('ver-mas-btn');
+        const passwordModal = document.getElementById('password-modal');
+        const closeModal = document.getElementById('close-modal');
+        const submitBtn = document.getElementById('submit-password');
+        const passInput = document.getElementById('password-input');
+        const errorMsg = document.getElementById('error-message');
+        const modalBox = document.getElementById('modal-box');
+
+        // Abrir la ventana emergente
+        verMasBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita que un clic en el botón cuente como un clic en el corazón
+            passwordModal.style.display = 'flex';
+        });
+
+        // Cerrar con la X
+        closeModal.addEventListener('click', () => {
+            passwordModal.style.display = 'none';
+            errorMsg.style.display = 'none';
+            passInput.value = '';
+        });
+
+        // Cerrar haciendo clic afuera de la caja
+        window.addEventListener('click', (e) => {
+            if (e.target === passwordModal) {
+                passwordModal.style.display = 'none';
+                errorMsg.style.display = 'none';
+                passInput.value = '';
+            }
+        });
+
+        // Verificar la contraseña
+        submitBtn.addEventListener('click', () => {
+            if (passInput.value.trim() === '21/05/2025') {
+                // SI LA CONTRASEÑA ES CORRECTA: Reemplaza el contenido de la ventana con la sorpresa
+                modalBox.innerHTML = `
+                    <span class="close-btn" onclick="document.getElementById('password-modal').style.display='none'">&times;</span>
+                    <h2>¿Qué quieres de mi?</h2>
+                    <p style="font-size: 1.2rem; line-height: 1.6; color: #ffffff;">
+                        Ya te he dicho todo y, la verdad, no sé qué más quieres de mí. Ya te expresé cómo me siento contigo, pero sigo sin saber cómo te sientes tú. Quisiera decirte tantas cosas... pero creo que para ti no soy nada más que un juguete que usas cuando quieres. Sé sincera, ¿Qé soy para ti? no quiero ser el tonto enamorado.
+                    </p>
+                `;
+            } else {
+                // SI ES INCORRECTA: Muestra el mensaje de error
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
